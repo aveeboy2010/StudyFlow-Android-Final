@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyFlow — Daily Tasks Manager</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a2d;--panel2:#18233b;--line:#2a3855;--text:#eef4ff;--muted:#9eacc7;--mint:#72f0c1;--blue:#7aa8ff;--gold:#ffd166;--red:#ff7188}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#172747 0%,#0b1020 58%,#080c17 100%);color:var(--text);font-family:"Segoe UI",Tahoma,Arial,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:11px 15px;background:var(--mint);color:#08151b;font-weight:700;transition:transform .15s,filter .15s}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+button.secondary{background:#263550;color:var(--text);border:1px solid var(--line)}button.secondary.active{background:var(--mint);color:#08151b;border-color:var(--mint)}
+button.danger{background:#4a2434;color:#ffdbe3;border:1px solid #77374d}
+input,select,textarea{width:100%;background:#0c1426;border:1px solid var(--line);border-radius:10px;padding:11px;color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--mint)}
+.wrap{max-width:1180px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:50px;height:50px;border-radius:16px;background:linear-gradient(135deg,var(--mint),var(--blue));display:grid;place-items:center;color:#08151b;font-size:25px;font-weight:900;box-shadow:0 0 30px #72f0c126}
+h1{font-size:25px;margin:0;letter-spacing:.4px} .sub{color:var(--muted);font-size:13px;margin-top:5px}
+.pill{border:1px solid var(--line);background:#10192b;border-radius:99px;padding:9px 13px;color:var(--muted);font-size:13px}
+.quote{position:relative;overflow:hidden;background:linear-gradient(115deg,#183d43,#19294a 60%,#29244b);border:1px solid #31505d;border-radius:22px;padding:25px;margin-bottom:20px}
+.quote:after{content:"✦";position:absolute;right:22px;top:4px;font-size:100px;color:#ffffff0a}
+.quote-label{font-size:12px;letter-spacing:2px;color:var(--mint);font-weight:bold}.quote-text{font-size:clamp(19px,3vw,27px);font-weight:700;line-height:1.55;margin:12px 0 9px;max-width:900px}.quote-sub{color:#c2d2e7;font-size:13px}
+.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,.85fr);gap:20px;align-items:start}
+.panel{background:linear-gradient(160deg,#141e33,#101729);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:20px;box-shadow:0 14px 40px #00000012}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}.panel h2{font-size:17px;margin:0}.muted{color:var(--muted)}.tiny{font-size:12px}
+.addrow{display:grid;grid-template-columns:minmax(0,1fr) 135px auto;gap:8px;margin-bottom:14px}
+.task-list{display:flex;flex-direction:column;gap:9px}.task{display:flex;align-items:center;gap:12px;padding:13px;background:#0d1628;border:1px solid #23324c;border-radius:14px}.task.done{opacity:.68}.task.done .task-name{text-decoration:line-through;color:#a2b5c8}
+.check{appearance:none;width:22px;height:22px;min-width:22px;border-radius:7px;border:2px solid #526783;background:transparent;padding:0;cursor:pointer;position:relative}
+.check:checked{background:var(--mint);border-color:var(--mint)}.check:checked:after{content:"✓";position:absolute;left:4px;top:-1px;color:#07151b;font-weight:bold}
+.task-info{flex:1;min-width:0}.task-name{font-weight:650;overflow-wrap:anywhere}.task-meta{font-size:11px;color:var(--muted);margin-top:4px}.task button{padding:6px 9px;font-size:12px}
+.empty{text-align:center;padding:26px 12px;color:var(--muted);border:1px dashed #33425f;border-radius:14px}
+.progress-wrap{height:10px;background:#26334c;border-radius:99px;overflow:hidden}.progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--mint),var(--blue));border-radius:99px;transition:width .35s}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{padding:13px;border-radius:14px;background:#0c1527;border:1px solid #23324c}.stat .num{font-size:23px;font-weight:800;margin:6px 0}.stat .label{font-size:11px;color:var(--muted)}
+.goalrow{display:grid;grid-template-columns:1fr 95px auto;gap:8px;align-items:center}
+.timer-card{text-align:center;position:relative;overflow:hidden}.timer-card:before{content:"";position:absolute;width:210px;height:210px;border-radius:50%;background:#72f0c10c;left:50%;top:20px;transform:translateX(-50%);filter:blur(10px)}
+.timer-ring{width:210px;height:210px;margin:15px auto 18px;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(var(--mint) 0deg,#27344d 0deg);box-shadow:0 0 0 9px #72f0c10a,0 0 38px #72f0c11b;transition:background .4s}
+.timer-ring:before{content:"";position:absolute;inset:9px;background:#111a2d;border-radius:50%;border:1px solid #2c3b57}
+.timer-inner{position:relative;z-index:1}.timer-time{font-size:40px;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums}.timer-caption{color:var(--mint);font-size:12px;letter-spacing:2px;margin-top:6px}
+.plant-growth{height:44px;width:64px;margin:0 auto 5px;position:relative;--growth:0;}
+.plant-soil{position:absolute;bottom:3px;left:12px;width:40px;height:5px;border-radius:50%;background:#8b6548;box-shadow:0 2px 0 #4a382f}
+.plant-seed{position:absolute;bottom:7px;left:28px;width:9px;height:6px;border-radius:70% 35% 70% 35%;background:#b58b53;transform:rotate(-20deg);opacity:calc(1 - var(--growth)*1.5);}
+.plant-stem{position:absolute;bottom:7px;left:31px;width:3px;height:calc(3px + 25px * var(--growth));background:linear-gradient(#9ff5b5,#45b978);border-radius:4px;transform-origin:bottom;}
+.plant-leaf{position:absolute;width:13px;height:7px;background:#72f0a1;border-radius:100% 0 100% 0;opacity:var(--growth);}
+.plant-leaf.left{left:18px;bottom:calc(8px + 13px * var(--growth));transform:rotate(22deg) scale(var(--growth));transform-origin:right bottom;}
+.plant-leaf.right{left:32px;bottom:calc(12px + 18px * var(--growth));transform:rotate(-20deg) scale(var(--growth));transform-origin:left bottom;}
+.plant-growth.growing .plant-stem{animation:stem-sway 3s ease-in-out infinite alternate;}
+@keyframes stem-sway{from{transform:rotate(-2deg)}to{transform:rotate(3deg)}}
+.pulse{animation:pulse 2s ease-in-out infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 9px #72f0c10a,0 0 25px #72f01b}50%{box-shadow:0 0 0 14px #72f0c107,0 0 46px #72f04a}}
+.timer-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.timer-actions button{min-width:88px}.timer-settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px;text-align:left}
+.timer-settings label{font-size:11px;color:var(--muted);display:block;margin-bottom:6px}
+.mini-quote{margin-top:16px;border-radius:13px;background:#0b1425;border:1px solid #24334d;padding:13px;color:#c9d9ef;font-size:13px;line-height:1.6}
+.week-bars{display:flex;align-items:end;gap:8px;height:125px;padding-top:8px}.daybar{flex:1;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:end;gap:6px}.bar-track{height:85px;background:#202d46;border-radius:8px;display:flex;align-items:end;overflow:hidden}.bar-fill{width:100%;background:linear-gradient(0deg,#6c9dff,var(--mint));border-radius:8px 8px 0 0;min-height:2px;transition:height .35s}.daybar span{font-size:11px;color:var(--muted)}.daybar b{font-size:10px}
+.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.review-grid label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}.review-grid textarea{min-height:88px;resize:vertical}
+footer{text-align:center;color:#71819e;font-size:12px;padding:4px 0 25px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,25px);opacity:0;pointer-events:none;background:#d6ffef;color:#092018;border-radius:14px;padding:13px 18px;font-weight:800;box-shadow:0 15px 50px #0007;z-index:100;transition:all .3s;text-align:center;max-width:90%}.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:#050915f5;z-index:80;display:none;align-items:center;justify-content:center;padding:20px}.modal.open{display:flex}.fullscreen-timer{width:min(900px,100%);text-align:center}.fs-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.fs-quote{color:#b7c8e3;font-size:clamp(17px,3vw,24px);margin:25px auto;max-width:800px;line-height:1.6}.fs-ring{width:min(48vw,360px);height:min(48vw,360px);min-width:240px;min-height:240px;margin:25px auto;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--mint) 0deg,#25324a 0deg);box-shadow:0 0 80px #72f0c11a;position:relative}.fs-ring:before{content:"";position:absolute;inset:13px;border-radius:50%;background:#0b1020;border:1px solid #293853}.fs-time{position:relative;font-size:clamp(50px,10vw,86px);font-weight:800;font-variant-numeric:tabular-nums}.fs-label{position:relative;color:var(--mint);letter-spacing:4px;font-size:13px;margin-top:5px}.fs-motivation{font-size:13px;color:#7f91af;margin-top:25px}
+@media(max-width:800px){.wrap{padding:14px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.addrow{grid-template-columns:1fr 110px}.addrow button{grid-column:1/-1}.goalrow{grid-template-columns:1fr 85px}.goalrow button{grid-column:1/-1}.quote{padding:20px}.timer-ring{width:190px;height:190px}.timer-time{font-size:35px}}
+@media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.review-grid{grid-template-columns:1fr}.brand h1{font-size:21px}.panel{padding:15px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="mainApp">
+<header>
+  <div class="brand"><div class="logo">✦</div><div><h1>StudyFlow</h1><div class="sub">SMALL STEPS. BIG RESULTS. · DAILY STUDY DASHBOARD</div></div></div>
+  <div class="pill" id="todayLabel">📅 අද දවස</div>
+</header>
+<section class="quote">
+  <div class="quote-label">✦ අද දවසේ MOTIVATION</div>
+  <div class="quote-text" id="quoteText">අද කරන පුංචි උත්සාහය හෙට ලොකු ජයග්‍රහණයක් වෙයි.</div>
+  <div class="quote-sub" id="quoteSub">අද දවස ඔයාගේ දවස කරගන්න. 💚</div>
+</section>
+<div class="layout">
+<main>
+  <section class="panel">
+    <div class="panel-head"><h2>☑️ අද දවසේ Tasks</h2><span class="pill" id="taskCount">0 / 0 complete</span></div>
+    <form id="taskForm" class="addrow"><input id="taskInput" maxlength="100" placeholder="අද කරන්න තියෙන වැඩක් ලියන්න..." required><select id="taskCategory"><option>Study</option><option>Recording</option><option>Past Paper</option><option>Personal</option><option>Other</option></select><button type="submit">＋ Add Task</button></form>
+    <div class="progress-wrap"><div class="progress-bar" id="taskProgress"></div></div>
+    <div class="tiny muted" id="progressText" style="margin:8px 0 15px">ඔයාට පුළුවන් — පළමු task එකෙන් පටන් ගන්න!</div>
+    <div class="task-list" id="taskList"><div class="empty">✨ අද දවසට task එකක් add කරලා පටන් ගන්න.</div></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>🎯 Daily Study Goal</h2><span class="pill" id="goalStatus">ඉලක්කයක් තෝරන්න</span></div>
+    <div class="goalrow"><div><label class="tiny muted" for="goalInput">දිනකට පාඩම් පැය ඉලක්කය</label><input id="goalInput" type="number" min="0.5" max="16" step="0.5" value="4"></div><div><label class="tiny muted">අද පාඩම්</label><div class="pill" id="studyTotal" style="text-align:center">0m</div></div><button id="saveGoal" type="button">Save Goal</button></div>
+    <div class="progress-wrap" style="margin-top:15px"><div class="progress-bar" id="goalProgress"></div></div>
+    <div class="tiny muted" id="goalText" style="margin-top:8px">Timer එකෙන් පාඩම් කරන වෙලාව record කරන්න.</div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>📈 This Week</h2><span class="pill" id="weekTotal">0 tasks done</span></div>
+    <div class="week-bars" id="weekBars"></div>
+    <div class="stats" style="margin-top:16px">
+      <div class="stat"><div class="label">🔥 CURRENT STREAK</div><div class="num" id="streakNum">0</div><div class="label">දින</div></div>
+      <div class="stat"><div class="label">✅ COMPLETED</div><div class="num" id="allDone">0</div><div class="label">tasks this week</div></div>
+      <div class="stat"><div class="label">⏱ STUDY TIME</div><div class="num" id="weekStudy">0h</div><div class="label">this week</div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>📚 Past Days — Notes & Progress</h2><span class="tiny muted">පරණ දවස් බලන්න</span></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <label for="historyDate" class="tiny muted">දිනය තෝරන්න</label>
+      <select id="historyDate" style="max-width:260px;flex:1"></select>
+    </div>
+    <div id="historyDetails"><div class="empty">පරණ දවසක විස්තර මෙතැන පෙන්වයි.</div></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>🌙 Day-End Review</h2><span class="tiny muted">දවස අවසානයේ ලියන්න</span></div>
+    <div class="review-grid">
+      <div><label for="reviewDone">අද කරගත්ත දේවල්</label><textarea id="reviewDone" placeholder="අද මම කරගත්තේ..."></textarea></div>
+      <div><label for="reviewMissed">මඟහැරුණු දේවල් / හේතු</label><textarea id="reviewMissed" placeholder="මඟහැරුණේ... හෙට මම..."></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="saveReview" type="button">Save Day Review</button><button class="secondary" id="finishDay" type="button">🏁 Finish Day</button></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>💾 Your Data</h2><span class="tiny muted">මේ browser එකේ save වේ</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="secondary" id="exportBtn" type="button">⬇ Export JSON Backup</button><button class="secondary" id="importBtn" type="button">⬆ Import Backup</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"><button class="danger" id="resetBtn" type="button">Reset All Data</button></div>
+    <p class="tiny muted" style="line-height:1.6;margin-bottom:0">වැදගත්: browser data clear කරන්න කලින් JSON backup එකක් export කරගන්න. Reset කළාම දත්ත මැකෙනවා.</p>
+  </section>
+</main>
+<aside>
+  <section class="panel timer-card" id="timerPanel">
+    <div class="panel-head"><h2>⏳ Focus Timer</h2><span class="pill" id="timerModeBadge">FOCUS</span></div>
+    <div class="timer-ring" id="timerRing"><div class="timer-inner"><div class="plant-growth" id="plantGrowth" aria-label="Growing plant animation"><div class="plant-leaf left"></div><div class="plant-leaf right"></div><div class="plant-stem"></div><div class="plant-seed"></div><div class="plant-soil"></div></div><div class="timer-time" id="timerDisplay">00:00</div><div class="timer-caption" id="timerCaption">FOCUS TIME</div></div></div>
+    <div class="timer-actions"><button id="startPause">▶ Start</button><button class="secondary" id="resetTimer">↺ Reset</button><button class="secondary" id="breakBtn">☕ Break</button></div>
+    <div class="timer-actions" style="margin-top:8px"><button class="secondary" id="countUpMode">↗ Count Up</button><button class="secondary" id="countDownMode">⏳ Countdown</button></div>
+    <button class="secondary" id="fullScreenBtn" style="width:100%;margin-top:10px">⛶ Full Screen Timer</button>
+    <div class="timer-settings">
+      <div><label for="focusMinutes">Focus minutes</label><input id="focusMinutes" type="number" min="1" max="180" value="25"></div>
+      <div><label for="breakMinutes">Break minutes</label><input id="breakMinutes" type="number" min="1" max="60" value="5"></div>
+    </div>
+    <div class="mini-quote" id="timerQuote">💚 “නවතින්න හිතෙන වෙලාවට, තව පොඩ්ඩක් ඉදිරියට යන්න.”</div>
+    <div class="tiny muted" style="margin-top:12px">Count Up හෝ Countdown තෝරන්න. Stop & Save කළාම ගතවූ study time එක අද study hours වලට එකතු වෙනවා. Countdown එක 0 වුණොත් session එක auto-save වෙනවා.</div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>⚡ Quick Motivation</h2></div>
+    <div class="mini-quote" id="quickQuote">“දවසකට එක පියවරක් — ඒත් ඉදිරියටම.”</div>
+    <button class="secondary" id="newQuote" style="width:100%;margin-top:10px">✦ තව quote එකක්</button>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>🧭 Focus Checklist</h2></div>
+    <div class="tiny muted" style="line-height:1.9">① එක වෙලාවක එක වැඩක් කරන්න.<br>② Phone එක අවශ්‍ය නැත්නම් පැත්තකින් තියන්න.<br>③ පොඩි break එකක් ගන්න.<br>④ ඊයේට වඩා අද එක පියවරක් ඉදිරියට යන්න.</div>
+  </section>
+</aside>
+</div>
+<footer>StudyFlow · Made for your daily progress ✦ Keep going, one task at a time.</footer>
+</div>
+<div class="modal" id="timerModal" aria-hidden="true">
+ <div class="fullscreen-timer">
+  <div class="fs-top"><div class="brand"><div class="logo">✦</div><div><h1>FOCUS MODE</h1><div class="sub">ONE TASK. ONE MOMENT. YOUR BEST.</div></div></div><button class="secondary" id="exitFullScreen">✕ Exit Full Screen</button></div>
+  <div class="fs-ring" id="fsRing"><div><div class="plant-growth" id="fsPlantGrowth" aria-label="Growing plant animation"><div class="plant-leaf left"></div><div class="plant-leaf right"></div><div class="plant-stem"></div><div class="plant-seed"></div><div class="plant-soil"></div></div><div class="fs-time" id="fsDisplay">00:00</div><div class="fs-label" id="fsCaption">FOCUS TIME</div></div></div>
+  <div class="fs-quote" id="fsQuote">අද කරන පුංචි උත්සාහය හෙට ලොකු ජයග්‍රහණයක් වෙයි.</div>
+  <div class="timer-actions"><button id="fsStartPause">▶ Start</button><button class="secondary" id="fsReset">↺ Reset</button><button class="secondary" id="fsBreak">☕ Break</button></div>
+  <div class="timer-actions" style="margin-top:8px"><button class="secondary" id="fsCountUpMode">↗ Count Up</button><button class="secondary" id="fsCountDownMode">⏳ Countdown</button></div>
+  <div class="fs-motivation">✦ BREATHE IN. FOCUS. KEEP GOING. ✦</div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+"use strict";
+var KEY="studyflow_manager_v2";
+var quotes=[
+["අද කරන පුංචි උත්සාහය හෙට ලොකු ජයග්‍රහණයක් වෙයි.","පොඩි පියවරක් වුණත් ඉදිරියට යන එක වටිනවා. 💚"],
+["ඔයාට හැමදේම එක දවසක කරන්න ඕන නැහැ. අදට පුළුවන් දේ කරන්න.","අද එක පියවරක්. හෙට තවත් එකක්."],
+["අමාරුයි කියලා අතහරින්න එපා — අලුත් දෙයක් ඉගෙනගන්නෙත් එහෙමයි.","වැරදි කියන්නේ ඉගෙනගැනීමේ කොටසක්."],
+["අනාගතය වෙනස් කරන්න පුළුවන් හොඳම වෙලාව අදයි.","ඔයාගේ අද උත්සාහයට ඔයාම ස්තුති කරගන්න දවසක් හදාගන්න."],
+["වේගය අඩු වුණාට කමක් නැහැ. නවතින්නේ නැතුව ඉදිරියට යන්න.","අනිත් අය එක්ක නෙවෙයි, ඊයේ හිටපු ඔයා එක්ක තරග කරන්න."],
+["විනාඩි 25ක අවධානයත් ලොකු වෙනසක් කරන්න පුළුවන්.","දැන්ම පටන් ගන්න. Motivation එක එනකම් ඉන්න එපා."],
+["සාර්ථකත්වය එකවර ලැබෙන්නේ නැහැ; දිනපතා කරන වැඩවලින් ගොඩනැගෙනවා.","අද ඔයා කරන වැඩේට සම්පූර්ණ අවධානය දෙන්න."],
+["අද මඟහැරුණු දෙයක් හෙට හදාගන්න පුළුවන්. උත්සාහය අත්හරින්න එපා.","හැම දවසක්ම අලුත් ආරම්භයක්."],
+["ඔයාගේ ඉලක්කය මතක් කරගන්න. ඒ වෙනුවෙන් අද පුංචි දෙයක් කරන්න.","අනාගතයේ ඔයාට අද උත්සාහය ගැන ආඩම්බර වෙන්න ඉඩ දෙන්න."],
+["දැනුමට දෙන කාලය කවදාවත් අපතේ යන්නේ නැහැ.","පොතේ එක පිටුවක් වුණත් අද ඉගෙනගන්න."],
+["පරිපූර්ණ දවසක් ඕන නැහැ. උත්සාහ කරන දවසක් ඇති.","කළ හැකි හොඳම දේ අද කරන්න."],
+["අමාරුම කොටස පටන් ගන්න එක. පටන් ගත්තම මඟ පැහැදිලි වෙනවා.","එක task එකක් තෝරන්න. දැන් පටන් ගන්න."]
+];
+var state={date:"",tasks:[],history:{},goal:4,focus:25,breakM:5,reviewDone:"",reviewMissed:"",studyToday:0,streak:0};
+var timer={remaining:0,total:0,running:false,mode:"focus",style:"countup",startedAt:0,interval:null,lastTick:0};
+function $(id){return document.getElementById(id)}
+function dateKey(d){var x=d||new Date();return x.getFullYear()+"-"+("0"+(x.getMonth()+1)).slice(-2)+"-"+("0"+x.getDate()).slice(-2)}
+function parseKey(k){var p=k.split("-");return new Date(Number(p[0]),Number(p[1])-1,Number(p[2]))}
+function escapeHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function save(){try{if(state.date){state.history=state.history||{};state.history[state.date]={tasks:state.tasks,studyToday:state.studyToday,reviewDone:state.reviewDone,reviewMissed:state.reviewMissed,goal:state.goal};}localStorage.setItem(KEY,JSON.stringify(state));}catch(e){showToast("⚠️ Save වුණේ නැහැ. JSON backup එකක් export කරන්න.");}}
+function load(){try{var raw=localStorage.getItem(KEY);if(raw){var got=JSON.parse(raw);if(got&&typeof got==="object"){for(var k in state){if(typeof got[k]!=="undefined")state[k]=got[k]}}}}catch(e){}}
+function showToast(msg){var t=$("toast");t.textContent=msg;t.className="toast show";window.setTimeout(function(){t.className="toast"},2600)}
+function quoteIndex(){var d=parseKey(dateKey());var n=Math.floor((d.getTime()/86400000));return ((n%quotes.length)+quotes.length)%quotes.length}
+function setDailyQuote(){var q=quotes[quoteIndex()];$("quoteText").textContent=q[0];$("quoteSub").textContent=q[1];$("fsQuote").textContent=q[0];$("timerQuote").textContent="💚 “"+q[0]+"”";$("quickQuote").textContent="“"+q[1]+"”"}
+function newRandomQuote(){var i=Math.floor(Math.random()*quotes.length);$("quickQuote").textContent="“"+quotes[i][0]+"”";$("timerQuote").textContent="💚 “"+quotes[i][1]+"”";$("fsQuote").textContent=quotes[i][0]}
+function ensureDate(){var today=dateKey();if(state.date!==today){if(state.date){state.history[state.date]=state.history[state.date]||{};state.history[state.date].tasks=state.tasks;state.history[state.date].studyToday=state.studyToday;state.history[state.date].reviewDone=state.reviewDone;state.history[state.date].reviewMissed=state.reviewMissed;}state.date=today;state.tasks=[];state.studyToday=0;state.reviewDone="";state.reviewMissed="";save();}}
+function renderTasks(){var box=$("taskList");box.innerHTML="";if(!state.tasks.length){box.innerHTML='<div class="empty">✨ අද දවසට task එකක් add කරලා පටන් ගන්න.</div>';}else{state.tasks.forEach(function(t,i){var div=document.createElement("div");div.className="task"+(t.done?" done":"");div.innerHTML='<input class="check" type="checkbox" '+(t.done?"checked":"")+' aria-label="Complete task"><div class="task-info"><div class="task-name">'+escapeHtml(t.name)+'</div><div class="task-meta">'+escapeHtml(t.category||"Study")+'</div></div><button class="secondary" type="button" title="Delete task">✕</button>';div.querySelector("input").addEventListener("change",function(){t.done=this.checked;save();renderAll();if(state.tasks.length&&state.tasks.every(function(x){return x.done})){celebrate()}});div.querySelector("button").addEventListener("click",function(){if(confirm("මේ task එක මකන්නද?")){state.tasks.splice(i,1);save();renderAll()}});box.appendChild(div)})}
+var done=state.tasks.filter(function(t){return t.done}).length;var total=state.tasks.length;var pct=total?Math.round(done/total*100):0;$("taskCount").textContent=done+" / "+total+" complete";$("taskProgress").style.width=pct+"%";$("progressText").textContent=total?(pct===100?"🏆 සුපිරි! අද tasks ඔක්කොම ඉවරයි!":pct+"% complete — තව "+(total-done)+"ක් ඉතුරුයි. ඔයාට පුළුවන්!"):"ඔයාට පුළුවන් — පළමු task එකෙන් පටන් ගන්න!"}
+function formatMins(m){m=Math.max(0,Math.round(m));if(m<60)return m+"m";return Math.floor(m/60)+"h "+(m%60)+"m"}
+function renderGoal(){var goal=Math.max(.5,Number(state.goal)||4);var pct=Math.min(100,Math.round(state.studyToday/(goal*60)*100));$("goalInput").value=goal;$("studyTotal").textContent=formatMins(state.studyToday);$("goalProgress").style.width=pct+"%";$("goalStatus").textContent=pct>=100?"🎯 Goal reached!":pct+"%";$("goalText").textContent=pct>=100?"🏆 අද study goal එක සම්පූර්ණයි!":formatMins(Math.max(0,goal*60-state.studyToday))+" ඉතුරුයි — ටිකෙන් ටික ඉලක්කයට යමු."}
+function getStreak(){var count=0;var d=parseKey(dateKey());var today=state.history[dateKey()];var todayDone=state.tasks.some(function(t){return t.done});if(!todayDone)d.setDate(d.getDate()-1);for(var i=0;i<370;i++){var k=dateKey(d);var h=state.history[k];var ok=(k===state.date?state.tasks.some(function(t){return t.done}):(h&&h.tasks&&h.tasks.some(function(t){return t.done})));if(!ok)break;count++;d.setDate(d.getDate()-1)}return count}
+function renderWeek(){var today=parseKey(dateKey());var start=new Date(today);var dow=(start.getDay()+6)%7;start.setDate(start.getDate()-dow);var labels=["සඳු","අඟ","බදා","බ්‍රහ","සිකු","සෙන","ඉරි"];var html="",totalDone=0,totalStudy=0;for(var i=0;i<7;i++){var d=new Date(start);d.setDate(start.getDate()+i);var k=dateKey(d);var tasks,mins;if(k===state.date){tasks=state.tasks;mins=state.studyToday}else{var h=state.history[k]||{};tasks=h.tasks||[];mins=h.studyToday||0}var done=tasks.filter(function(t){return t.done}).length;totalDone+=done;totalStudy+=mins;var pct=tasks.length?Math.round(done/tasks.length*100):0;html+='<div class="daybar"><b>'+pct+'%</b><div class="bar-track"><div class="bar-fill" style="height:'+pct+'%"></div></div><span>'+labels[i]+'</span></div>'}$("weekBars").innerHTML=html;$("weekTotal").textContent=totalDone+" tasks done";$("allDone").textContent=totalDone;$("weekStudy").textContent=(totalStudy/60).toFixed(1)+"h";$("streakNum").textContent=getStreak()}
+function renderReview(){$("reviewDone").value=state.reviewDone||"";$("reviewMissed").value=state.reviewMissed||""}
+function renderHistory(){
+ var sel=$("historyDate"),box=$("historyDetails"),keys=Object.keys(state.history||{});
+ if(state.date&&keys.indexOf(state.date)===-1)keys.push(state.date);
+ keys=keys.filter(function(k){return state.history[k]&&typeof state.history[k]==="object"}).sort(function(a,b){return b.localeCompare(a)});
+ var previous=sel.value;sel.innerHTML="";
+ if(!keys.length){sel.innerHTML='<option value="">No saved days yet</option>';box.innerHTML='<div class="empty">තවම පරණ දවසක data නැහැ. අද progress සහ notes auto-save වෙනවා.</div>';return;}
+ keys.forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=parseKey(k).toLocaleDateString("si-LK",{year:"numeric",month:"long",day:"numeric"});sel.appendChild(o)});
+ sel.value=keys.indexOf(previous)!==-1?previous:keys[0];showHistoryDay(sel.value);
+}
+function showHistoryDay(k){
+ var box=$("historyDetails"),h=k===state.date?{tasks:state.tasks,studyToday:state.studyToday,reviewDone:state.reviewDone,reviewMissed:state.reviewMissed,goal:state.goal}:(state.history||{})[k];
+ if(!h){box.innerHTML='<div class="empty">මේ දවසේ දත්ත නැහැ.</div>';return;}
+ var tasks=h.tasks||[],done=tasks.filter(function(t){return t.done}).length,total=tasks.length,pct=total?Math.round(done/total*100):0;
+ var dateText=parseKey(k).toLocaleDateString("si-LK",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+ var taskHtml=tasks.length?tasks.map(function(t){return '<div class="task '+(t.done?'done':'')+'" style="margin-top:7px"><span>'+(t.done?'✅':'▫️')+'</span><div class="task-info"><div class="task-name">'+escapeHtml(t.name)+'</div><div class="task-meta">'+escapeHtml(t.category||"Study")+'</div></div></div>'}).join(""):'<div class="empty">මේ දවසට tasks add කරලා නැහැ.</div>';
+ box.innerHTML='<div class="stat" style="margin-bottom:12px"><div class="label">'+escapeHtml(dateText)+'</div><div class="num">'+formatMins(h.studyToday||0)+'</div><div class="label">Study time · Goal '+(Number(h.goal)||Number(state.goal)||4)+'h</div><div class="progress-wrap" style="margin-top:10px"><div class="progress-bar" style="width:'+pct+'%"></div></div><div class="tiny muted" style="margin-top:7px">'+done+' / '+total+' tasks complete · '+pct+'%</div></div><h3 style="font-size:14px;margin:14px 0 8px">☑️ Tasks</h3>'+taskHtml+'<h3 style="font-size:14px;margin:16px 0 8px">📝 අද කරගත්ත දේවල්</h3><div class="mini-quote" style="white-space:pre-wrap">'+(h.reviewDone?escapeHtml(h.reviewDone):'සටහන් නැහැ.')+'</div><h3 style="font-size:14px;margin:14px 0 8px">🌙 මඟහැරුණු දේවල් / හේතු</h3><div class="mini-quote" style="white-space:pre-wrap">'+(h.reviewMissed?escapeHtml(h.reviewMissed):'සටහන් නැහැ.')+'</div>';
+}
+function renderAll(){renderTasks();renderGoal();renderWeek();renderReview();renderHistory()}
+function celebrate(){showToast("🎉 CONGRATULATIONS! අද tasks ඔක්කොම ඉවරයි! 🎉");try{var ctx=new(window.AudioContext||window.webkitAudioContext)();var o=ctx.createOscillator();var g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=660;g.gain.value=.06;o.start();o.frequency.setValueAtTime(880,ctx.currentTime+.12);o.stop(ctx.currentTime+.25)}catch(e){}}
+function timerInitialSeconds(){return (timer.mode==="focus"?(Number(state.focus)||25):(Number(state.breakM)||5))*60}
+function timerElapsedSeconds(){return timer.style==="countdown"?Math.max(0,timer.total-timer.remaining):timer.remaining}
+function updateTimerUI(){
+ var s=Math.max(0,Math.floor(timer.remaining));
+ var str=String(Math.floor(s/3600)).padStart(2,"0")+":"+String(Math.floor((s%3600)/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+ $("timerDisplay").textContent=str;$("fsDisplay").textContent=str;
+ $("timerCaption").textContent=(timer.mode==="focus"?"STUDY":"BREAK")+(timer.style==="countdown"?" COUNTDOWN":" TIME");$("fsCaption").textContent=$("timerCaption").textContent;
+ $("timerModeBadge").textContent=(timer.mode==="focus"?"FOCUS":"BREAK")+" · "+(timer.style==="countdown"?"COUNTDOWN":"COUNT UP");
+ $("startPause").textContent=timer.running?"■ Stop & Save":"▶ Start";$("fsStartPause").textContent=timer.running?"■ Stop & Save":"▶ Start";
+ ["countUpMode","fsCountUpMode"].forEach(function(id){$(id).classList.toggle("active",timer.style==="countup")});["countDownMode","fsCountDownMode"].forEach(function(id){$(id).classList.toggle("active",timer.style==="countdown")});
+ var growth=Math.min(1,timerElapsedSeconds()/(30*60));
+ [$("plantGrowth"),$("fsPlantGrowth")].forEach(function(el){if(el){el.style.setProperty("--growth",growth.toFixed(3));el.classList.toggle("growing",timer.running&&timer.mode==="focus")}});
+ var elapsed=timerElapsedSeconds();
+ var progress=timer.style==="countdown"?(timer.total>0?Math.max(0,Math.min(1,timer.remaining/timer.total)):1):1;
+ var deg=progress*360;
+ var hue=timer.style==="countup"?(150-Math.floor(elapsed/60)*3)%360:150;
+ var ringColor="hsl("+hue+", 82%, 62%)";
+ $("timerRing").style.background="conic-gradient("+ringColor+" "+deg+"deg,#27344d 0deg)";$("fsRing").style.background="conic-gradient("+ringColor+" "+deg+"deg,#25324a 0deg)";
+ if(timer.running){$("timerRing").classList.add("pulse");$("fsRing").classList.add("pulse")}else{$("timerRing").classList.remove("pulse");$("fsRing").classList.remove("pulse")}
+}
+function stopTimer(saveStudy){
+ if(timer.running&&timer.interval){clearInterval(timer.interval);timer.interval=null}
+ if("speechSynthesis" in window){try{window.speechSynthesis.cancel()}catch(e){}}
+ timer.running=false;var elapsed=timerElapsedSeconds();
+ if(saveStudy&&timer.mode==="focus"&&elapsed>0){state.studyToday+=elapsed/60;save();renderGoal();renderWeek();showToast("📚 "+formatMins(elapsed/60)+" study time එකට එකතු කළා!")}
+ timer.remaining=0;timer.total=0;timer.lastTick=0;updateTimerUI();
+}
+
+var lastHourlyChime=0;
+function playTimerSound(kind){
+ try{
+  var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  var ctx=new AC(),notes=kind==="complete"?[523.25,659.25,783.99,1046.5]:[880,1174.66];
+  notes.forEach(function(freq,i){var o=ctx.createOscillator(),g=ctx.createGain();o.type="sine";o.frequency.value=freq;g.gain.setValueAtTime(0.0001,ctx.currentTime+i*0.16);g.gain.exponentialRampToValueAtTime(0.16,ctx.currentTime+i*0.16+0.025);g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+i*0.16+0.22);o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*0.16);o.stop(ctx.currentTime+i*0.16+0.24)});
+  window.setTimeout(function(){ctx.close()},kind==="complete"?1100:700);
+ }catch(e){}
+}
+function startTimer(){
+ if(timer.running){stopTimer(true);return}
+ timer.total=timer.style==="countdown"?timerInitialSeconds():0;timer.remaining=timer.total;lastHourlyChime=0;timer.running=true;timer.lastTick=Date.now();
+ timer.interval=window.setInterval(function(){var now=Date.now();var delta=(now-timer.lastTick)/1000;timer.lastTick=now;if(timer.style==="countdown"){
+  timer.remaining=Math.max(0,timer.remaining-delta);
+  if(timer.remaining<=0){playTimerSound("complete");stopTimer(true);showToast("🎉 Timer complete! Study time save කළා.");return}
+ }else{
+  timer.remaining+=delta;timer.total=timer.remaining;
+  var completedHours=Math.floor(timer.remaining/3600);
+  if(completedHours>lastHourlyChime){lastHourlyChime=completedHours;playTimerSound("hour")}
+ }updateTimerUI()},250);updateTimerUI();
+}
+function resetTimer(){if(timer.interval){clearInterval(timer.interval);timer.interval=null}timer.running=false;timer.mode="focus";timer.total=timer.style==="countdown"?timerInitialSeconds():0;timer.remaining=timer.total;timer.lastTick=0;updateTimerUI()}
+function setTimerStyle(style){if(timer.running){showToast("Timer එක stop කරලා mode එක මාරු කරන්න.");return}timer.style=style;timer.total=style==="countdown"?timerInitialSeconds():0;timer.remaining=timer.total;updateTimerUI();showToast(style==="countup"?"↗ Count Up mode තෝරාගත්තා.":"⏳ Countdown mode තෝරාගත්තා.")}
+function setBreak(){if(timer.running){stopTimer(timer.mode==="focus")}timer.mode="break";timer.remaining=0;timer.total=0;updateTimerUI();showToast("☕ Break mode — Start කරලා break time එක මනින්න.")}
+function openFull(){ $("timerModal").className="modal open";$("timerModal").setAttribute("aria-hidden","false");try{var el=$("timerModal");if(el.requestFullscreen)el.requestFullscreen().catch(function(){});}catch(e){}}
+function closeFull(){ $("timerModal").className="modal";$("timerModal").setAttribute("aria-hidden","true");try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(function(){});}catch(e){}}
+$("taskForm").addEventListener("submit",function(e){e.preventDefault();var name=$("taskInput").value.replace(/^\s+|\s+$/g,"");if(!name)return;state.tasks.push({name:name,category:$("taskCategory").value,done:false,created:Date.now()});$("taskInput").value="";save();renderAll();$("taskInput").focus()});
+$("saveGoal").addEventListener("click",function(){var n=Number($("goalInput").value);if(!n||n<.5||n>16){showToast("Goal එක පැය 0.5–16 අතර දාන්න.");return}state.goal=n;save();renderGoal();showToast("🎯 Daily goal save කළා!")});
+$("startPause").addEventListener("click",startTimer);$("fsStartPause").addEventListener("click",startTimer);$("resetTimer").addEventListener("click",resetTimer);$("fsReset").addEventListener("click",resetTimer);$("breakBtn").addEventListener("click",setBreak);$("fsBreak").addEventListener("click",setBreak);$("fullScreenBtn").addEventListener("click",openFull);$("exitFullScreen").addEventListener("click",closeFull);$("countUpMode").addEventListener("click",function(){setTimerStyle("countup")});$("fsCountUpMode").addEventListener("click",function(){setTimerStyle("countup")});$("countDownMode").addEventListener("click",function(){setTimerStyle("countdown")});$("fsCountDownMode").addEventListener("click",function(){setTimerStyle("countdown")});
+$("focusMinutes").addEventListener("change",function(){var n=Math.max(1,Math.min(180,Number(this.value)||25));state.focus=n;this.value=n;save();if(!timer.running&&timer.mode==="focus")resetTimer()});
+$("breakMinutes").addEventListener("change",function(){var n=Math.max(1,Math.min(60,Number(this.value)||5));state.breakM=n;this.value=n;save();if(!timer.running&&timer.mode==="break")setBreak()});
+$("newQuote").addEventListener("click",newRandomQuote);
+$("historyDate").addEventListener("change",function(){showHistoryDay(this.value)});
+$("saveReview").addEventListener("click",function(){state.reviewDone=$("reviewDone").value;state.reviewMissed=$("reviewMissed").value;save();renderHistory();showToast("📝 Review save කළා!")});
+$("finishDay").addEventListener("click",function(){state.reviewDone=$("reviewDone").value;state.reviewMissed=$("reviewMissed").value;state.history[state.date]={tasks:state.tasks,studyToday:state.studyToday,reviewDone:state.reviewDone,reviewMissed:state.reviewMissed,goal:state.goal};save();renderAll();if(state.tasks.length&&state.tasks.every(function(t){return t.done})){celebrate()}else{showToast("🌙 Day review save කළා. හෙට අලුත් දවසක්!") }});
+$("exportBtn").addEventListener("click",function(){save();var backup=JSON.stringify(state,null,2);if(window.StudyFlowAndroid&&typeof window.StudyFlowAndroid.saveBackup==="function"){window.StudyFlowAndroid.saveBackup(backup);showToast("💾 Backup save කරන්න location එක තෝරන්න.");return;}var blob=new Blob([backup],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="studyflow-backup-"+state.date+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);window.setTimeout(function(){URL.revokeObjectURL(url)},1000);showToast("💾 JSON backup export කළා!")});
+$("importBtn").addEventListener("click",function(){$("importFile").click()});
+$("importFile").addEventListener("change",function(){var f=this.files&&this.files[0];if(!f)return;var reader=new FileReader();reader.onload=function(){try{var obj=JSON.parse(reader.result);if(!obj||typeof obj!=="object"||!obj.history||!Array.isArray(obj.tasks))throw new Error("invalid");if(!confirm("දැනට තියෙන data වෙනුවට backup එක load කරන්නද?"))return;state=obj;save();$("goalInput").value=state.goal||4;ensureDate();setDailyQuote();renderAll();resetTimer();showToast("✅ Backup import කළා!")}catch(e){showToast("⚠️ මේ JSON backup එක කියවන්න බැහැ.")}};reader.readAsText(f);this.value=""});
+$("resetBtn").addEventListener("click",function(){if(!confirm("සියලු tasks, history සහ settings මකන්නද? මුලින් JSON backup එකක් ගන්න!"))return;try{localStorage.removeItem(KEY)}catch(e){}state={date:dateKey(),tasks:[],history:{},goal:4,focus:25,breakM:5,reviewDone:"",reviewMissed:"",studyToday:0,streak:0};$("focusMinutes").value=25;$("breakMinutes").value=5;resetTimer();save();renderAll();showToast("Reset කළා. අලුත් ආරම්භයක්! ✨")});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&$("timerModal").className.indexOf("open")!==-1)closeFull()});
+load();ensureDate();$("todayLabel").textContent="📅 "+new Date().toLocaleDateString("si-LK",{year:"numeric",month:"long",day:"numeric"});$("goalInput").value=state.goal||4;$("focusMinutes").value=state.focus||25;$("breakMinutes").value=state.breakM||5;setDailyQuote();timer.total=0;timer.remaining=0;renderAll();updateTimerUI();
+})();
+</script>
+</body>
+</html>
