@@ -59,10 +59,27 @@ footer{text-align:center;color:#71819e;font-size:12px;padding:4px 0 25px}
 .modal{position:fixed;inset:0;background:#050915f5;z-index:80;display:none;align-items:center;justify-content:center;padding:20px}.modal.open{display:flex}.fullscreen-timer{width:min(900px,100%);text-align:center}.fs-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.fs-quote{color:#b7c8e3;font-size:clamp(17px,3vw,24px);margin:25px auto;max-width:800px;line-height:1.6}.fs-ring{width:min(48vw,360px);height:min(48vw,360px);min-width:240px;min-height:240px;margin:25px auto;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--mint) 0deg,#25324a 0deg);box-shadow:0 0 80px #72f0c11a;position:relative}.fs-ring:before{content:"";position:absolute;inset:13px;border-radius:50%;background:#0b1020;border:1px solid #293853}.fs-time{position:relative;font-size:clamp(50px,10vw,86px);font-weight:800;font-variant-numeric:tabular-nums}.fs-label{position:relative;color:var(--mint);letter-spacing:4px;font-size:13px;margin-top:5px}.fs-motivation{font-size:13px;color:#7f91af;margin-top:25px}
 @media(max-width:800px){.wrap{padding:14px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.addrow{grid-template-columns:1fr 110px}.addrow button{grid-column:1/-1}.goalrow{grid-template-columns:1fr 85px}.goalrow button{grid-column:1/-1}.quote{padding:20px}.timer-ring{width:190px;height:190px}.timer-time{font-size:35px}}
 @media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.review-grid{grid-template-columns:1fr}.brand h1{font-size:21px}.panel{padding:15px}}
+
+#licenseGate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at top,#172747 0%,#0b1020 60%,#080c17 100%);color:var(--text)}
+.license-card{width:min(440px,100%);padding:26px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(160deg,#141e33,#101729);box-shadow:0 20px 70px #0008}
+.license-card h2{margin:0 0 8px;font-size:23px}.license-card p{color:var(--muted);line-height:1.6;font-size:14px}
+.license-card input{margin:12px 0}.license-card button{width:100%}.license-status{min-height:22px;margin-top:12px;font-size:13px;color:var(--gold)}
+
 </style>
 </head>
 <body>
-<div class="wrap" id="mainApp">
+<div id="licenseGate" aria-live="polite">
+  <div class="license-card">
+    <div class="brand" style="margin-bottom:18px"><div class="logo">✦</div><div><h1>StudyFlow</h1><div class="sub">PERSONAL LICENSE ACTIVATION</div></div></div>
+    <h2>Activate StudyFlow</h2>
+    <p>Enter the activation code you received after purchase. One license works on one phone.</p>
+    <input id="licenseCodeInput" type="text" maxlength="80" autocomplete="off" autocapitalize="characters" placeholder="SF-XXXX-XXXX-XXXX">
+    <button id="activateLicenseBtn" type="button">Activate License</button>
+    <div id="licenseStatus" class="license-status">Checking license status…</div>
+    <p class="tiny">Internet is needed for first activation. After activation, StudyFlow can be used offline for up to 30 days before an online recheck is required.</p>
+  </div>
+</div>
+<div class="wrap" id="mainApp" style="display:none">
 <header>
   <div class="brand"><div class="logo">✦</div><div><h1>StudyFlow</h1><div class="sub">SMALL STEPS. BIG RESULTS. · DAILY STUDY DASHBOARD</div></div></div>
   <div class="pill" id="todayLabel">📅 අද දවස</div>
@@ -156,6 +173,87 @@ footer{text-align:center;color:#71819e;font-size:12px;padding:4px 0 25px}
  </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<script src="license-config.js"></script>
+<script>
+(function(){
+  "use strict";
+  var CACHE_KEY = "studyflow_license_cache_v1";
+  var gate = document.getElementById("licenseGate");
+  var app = document.getElementById("mainApp");
+  var status = document.getElementById("licenseStatus");
+  var button = document.getElementById("activateLicenseBtn");
+  var input = document.getElementById("licenseCodeInput");
+  var cfg = window.STUDYFLOW_LICENSE_CONFIG || {};
+  function say(message, bad){ status.textContent = message; status.style.color = bad ? "#ff9bad" : "#ffd166"; }
+  function deviceId(){
+    try {
+      if (window.StudyFlowAndroid && typeof window.StudyFlowAndroid.getInstallId === "function") {
+        return window.StudyFlowAndroid.getInstallId();
+      }
+    } catch(e) {}
+    return "";
+  }
+  function openApp(){ gate.style.display = "none"; app.style.display = ""; }
+  function cacheIsValid(){
+    try {
+      var saved = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      return !!(saved && saved.ok === true && saved.deviceId === deviceId() && saved.validUntil && Date.now() < Date.parse(saved.validUntil));
+    } catch(e) { return false; }
+  }
+  async function activate(code, quiet){
+    if (!cfg.supabaseUrl || !cfg.anonKey) {
+      say("License service is not configured yet. Please try again later.", true);
+      return false;
+    }
+    var id = deviceId();
+    if (!id) { say("Could not read this phone's installation ID. Please reinstall the official app or contact support.", true); return false; }
+    try {
+      var response = await fetch(cfg.supabaseUrl.replace(/\/$/, "") + "/functions/v1/activate-license", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": cfg.anonKey, "Authorization": "Bearer " + cfg.anonKey },
+        body: JSON.stringify({ code: code, deviceId: id })
+      });
+      var result = await response.json();
+      if (!response.ok || !result.ok) {
+        var messages = {
+          invalid_code: "That activation code is not valid.",
+          license_inactive: "This license is blocked or revoked. Contact StudyFlow support.",
+          device_mismatch: "This license is already activated on another phone. Contact support for a phone change.",
+          server_not_configured: "License service setup is incomplete. Please contact support."
+        };
+        say(messages[result.reason] || "Activation failed. Check your internet connection and try again.", true);
+        return false;
+      }
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ok:true, deviceId:id, validUntil:result.validUntil}));
+      say("License activated successfully.", false);
+      openApp();
+      return true;
+    } catch(e) {
+      if (cacheIsValid()) { openApp(); return true; }
+      say("Could not connect. First activation needs internet. Please try again.", true);
+      return false;
+    }
+  }
+  button.addEventListener("click", function(){
+    var code = (input.value || "").trim().toUpperCase();
+    if (!code) { say("Enter your activation code first.", true); return; }
+    button.disabled = true;
+    button.textContent = "Checking…";
+    activate(code, false).finally(function(){ button.disabled = false; button.textContent = "Activate License"; });
+  });
+  input.addEventListener("keydown", function(e){ if(e.key === "Enter") button.click(); });
+  if (cfg.supabaseUrl && cfg.anonKey) {
+    // Always recheck online when possible. If offline, use a still-valid 30-day cache.
+    activate("", true).then(function(ok){
+      if (!ok && cacheIsValid()) openApp();
+    });
+  } else {
+    say("License service setup is required before this app can be sold.", true);
+  }
+})();
+</script>
+
 <script>
 (function(){
 "use strict";
