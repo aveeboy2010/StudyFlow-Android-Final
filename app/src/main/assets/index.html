@@ -245,9 +245,7 @@ footer{text-align:center;color:#71819e;font-size:12px;padding:4px 0 25px}
   input.addEventListener("keydown", function(e){ if(e.key === "Enter") button.click(); });
   if (cfg.supabaseUrl && cfg.anonKey) {
     // Always recheck online when possible. If offline, use a still-valid 30-day cache.
-    activate("", true).then(function(ok){
-      if (!ok && cacheIsValid()) openApp();
-    });
+    activate("", true);
   } else {
     say("License service setup is required before this app can be sold.", true);
   }
