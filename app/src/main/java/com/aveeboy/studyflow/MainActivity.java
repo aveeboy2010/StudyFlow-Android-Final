@@ -16,6 +16,7 @@ import android.webkit.WebResourceRequest;
 import android.widget.Toast;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public class MainActivity extends Activity {
     private WebView webView;
@@ -29,6 +30,17 @@ public class MainActivity extends Activity {
     private static final int CREATE_FILE_REQUEST = 1002;
 
     public class AndroidBridge {
+        @JavascriptInterface
+        public String getInstallId() {
+            android.content.SharedPreferences prefs = getSharedPreferences("studyflow_license", MODE_PRIVATE);
+            String installId = prefs.getString("install_id", null);
+            if (installId == null || installId.length() < 16) {
+                installId = UUID.randomUUID().toString();
+                prefs.edit().putString("install_id", installId).apply();
+            }
+            return installId;
+        }
+
         @JavascriptInterface
         public void saveBackup(String json) {
             runOnUiThread(() -> {
