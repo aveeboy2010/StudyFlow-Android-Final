@@ -16,9 +16,7 @@ function json(body: Record<string, unknown>, status = 200) {
 async function sha256Hex(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -30,54 +28,53 @@ Deno.serve(async (req) => {
     const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
     const deviceId = typeof body.deviceId === "string" ? body.deviceId.trim() : "";
 
-    if (code.length < 12 || code.length > 80 || !/^[A-Z0-9-]+$/.test(code)) {
-      return json({ ok: false, reason: "invalid_code" }, 400);
-    }
     if (deviceId.length < 16 || deviceId.length > 100) {
       return json({ ok: false, reason: "invalid_device" }, 400);
+    }
+    if (code && (code.length < 12 || code.length > 80 || !/^[A-Z0-9-]+$/.test(code))) {
+      return json({ ok: false, reason: "invalid_code" }, 400);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) {
-      return json({ ok: false, reason: "server_not_configured" }, 500);
-    }
+    if (!supabaseUrl || !serviceRoleKey) return json({ ok: false, reason: "server_not_configured" }, 500);
 
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const licenseHash = await sha256Hex(code);
 
-    const { data: found, error: findError } = await admin
-      .from("studyflow_licenses")
-      .select("id,status,device_id")
-      .eq("license_hash", licenseHash)
-      .maybeSingle();
+    // Startup recheck: find the license already bound to this installation.
+    // First activation: look up the supplied one-time code.
+    let found: { id: string; status: string; device_id: string | null } | null = null;
+    if (code) {
+      const licenseHash = await sha256Hex(code);
+      const { data, error } = await admin.from("studyflow_licenses")
+        .select("id,status,device_id").eq("license_hash", licenseHash).maybeSingle();
+      if (error) return json({ ok: false, reason: "server_error" }, 500);
+      found = data;
+    } else {
+      const { data, error } = await admin.from("studyflow_licenses")
+        .select("id,status,device_id").eq("device_id", deviceId).maybeSingle();
+      if (error) return json({ ok: false, reason: "server_error" }, 500);
+      found = data;
+    }
 
-    if (findError) return json({ ok: false, reason: "server_error" }, 500);
-    if (!found) return json({ ok: false, reason: "invalid_code" }, 404);
+    if (!found) return json({ ok: false, reason: code ? "invalid_code" : "not_activated" }, 404);
     if (found.status !== "active") return json({ ok: false, reason: "license_inactive" }, 403);
 
-    let boundDevice = found.device_id as string | null;
-    if (!boundDevice) {
-      const { data: claimed, error: claimError } = await admin
-        .from("studyflow_licenses")
+    let boundDevice = found.device_id;
+    if (!boundDevice && code) {
+      const { data: claimed, error: claimError } = await admin.from("studyflow_licenses")
         .update({ device_id: deviceId, activated_at: new Date().toISOString() })
-        .eq("id", found.id)
-        .eq("status", "active")
-        .is("device_id", null)
-        .select("device_id")
-        .maybeSingle();
+        .eq("id", found.id).eq("status", "active").is("device_id", null)
+        .select("device_id").maybeSingle();
 
       if (claimError) return json({ ok: false, reason: "server_error" }, 500);
       if (claimed) {
         boundDevice = claimed.device_id;
       } else {
-        const { data: latest, error: latestError } = await admin
-          .from("studyflow_licenses")
-          .select("status,device_id")
-          .eq("id", found.id)
-          .maybeSingle();
+        const { data: latest, error: latestError } = await admin.from("studyflow_licenses")
+          .select("status,device_id").eq("id", found.id).maybeSingle();
         if (latestError || !latest) return json({ ok: false, reason: "server_error" }, 500);
         if (latest.status !== "active") return json({ ok: false, reason: "license_inactive" }, 403);
         boundDevice = latest.device_id;
@@ -90,16 +87,11 @@ Deno.serve(async (req) => {
 
     const checkedAt = new Date();
     const validUntil = new Date(checkedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
-    await admin.from("studyflow_licenses")
-      .update({ last_seen_at: checkedAt.toISOString() })
-      .eq("id", found.id);
+    const { error: touchError } = await admin.from("studyflow_licenses")
+      .update({ last_seen_at: checkedAt.toISOString() }).eq("id", found.id);
+    if (touchError) return json({ ok: false, reason: "server_error" }, 500);
 
-    return json({
-      ok: true,
-      status: "active",
-      checkedAt: checkedAt.toISOString(),
-      validUntil: validUntil.toISOString(),
-    });
+    return json({ ok: true, status: "active", checkedAt: checkedAt.toISOString(), validUntil: validUntil.toISOString() });
   } catch (_error) {
     return json({ ok: false, reason: "bad_request" }, 400);
   }
